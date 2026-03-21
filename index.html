@@ -337,9 +337,9 @@
             font-size: 0.9rem;
             font-weight: 300;
             resize: none;
-            outline: none;
+            outline: hidden;
+            overflow: hidden;
             line-height: 1.6;
-            max-height: 120px;
             min-height: 50px;
             transition: border-color 0.2s;
         }
@@ -504,7 +504,7 @@
         // ---- テキストエリアの自動リサイズ ----
         function autoResize() {
             messageInput.style.height = 'auto';
-            messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+            messageInput.style.height = messageInput.scrollHeight + 'px';
         }
         messageInput.addEventListener('input', autoResize);
 
