@@ -11,13 +11,12 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from html import escape as html_escape
-from typing import Generator
+from typing import Any, Generator
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
 
 from google import genai
 
@@ -86,6 +85,10 @@ def get_db() -> Generator[sqlite3.Connection, None, None]:
     conn.execute("PRAGMA journal_mode=WAL")
     try:
         yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -121,7 +124,7 @@ def emotion_to_score(emotion: str) -> dict[str, int]:
 # ---------------------------------------------------------------------------
 # DB からの感情ログ取得・集計
 # ---------------------------------------------------------------------------
-def get_emotion_logs(user_id: str, days: int = 7) -> list[dict]:
+def get_emotion_logs(user_id: str, days: int = 7) -> list[dict[str, Any]]:
     """過去 N 日分の感情ログを取得する。"""
     since = (datetime.now() - timedelta(days=days)).isoformat()
     with get_db() as conn:
@@ -144,7 +147,7 @@ def get_emotion_logs(user_id: str, days: int = 7) -> list[dict]:
     ]
 
 
-def aggregate_by_day(logs: list[dict]) -> list[dict]:
+def aggregate_by_day(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """日ごとにストレス・モチベの平均を計算する。"""
     daily: dict[str, dict[str, list[int]]] = {}
     for log in logs:
@@ -168,7 +171,7 @@ def aggregate_by_day(logs: list[dict]) -> list[dict]:
 # ---------------------------------------------------------------------------
 # AI フィードバック生成
 # ---------------------------------------------------------------------------
-def _generate_feedback(daily: list[dict], days: int) -> str:
+def _generate_feedback(daily: list[dict[str, Any]], days: int) -> str:
     """Gemini で感情データに基づくフィードバックを生成する。"""
     summary = json.dumps(daily, ensure_ascii=False)
     prompt = (
@@ -180,7 +183,7 @@ def _generate_feedback(daily: list[dict], days: int) -> str:
         response = gemini_client.models.generate_content(
             model=GEMINI_MODEL, contents=prompt
         )
-        return response.text.strip()
+        return (response.text or "").strip()
     except Exception:
         logger.exception("フィードバック生成に失敗しました")
         return "フィードバックを生成できませんでした。しばらくしてからお試しください。"
@@ -193,7 +196,7 @@ def _generate_feedback(daily: list[dict], days: int) -> str:
 def get_analytics(
     user_id: str,
     days: int = Query(default=7, ge=1, le=MAX_DAYS),
-):
+) -> dict[str, Any]:
     """日ごとの感情データを返す。"""
     user_id = _validate_user_id(user_id)
     logs = get_emotion_logs(user_id, days)
@@ -213,7 +216,7 @@ def get_analytics(
 def get_feedback(
     user_id: str,
     days: int = Query(default=7, ge=1, le=MAX_DAYS),
-):
+) -> dict[str, Any]:
     """AI が感情ログを分析してフィードバックを生成する。"""
     user_id = _validate_user_id(user_id)
     logs = get_emotion_logs(user_id, days)

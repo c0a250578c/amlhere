@@ -12,16 +12,16 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from html import escape as html_escape
 from pathlib import Path
-from typing import Generator
+from typing import Any, Generator
 
-import faiss
+import faiss  # type: ignore[import-untyped]
 import numpy as np
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer  # type: ignore[import-untyped]
 
 from google import genai
 
@@ -69,7 +69,7 @@ if not _gemini_api_key:
     logger.warning("GEMINI_API_KEY が設定されていません")
 gemini_client = genai.Client(api_key=_gemini_api_key)
 
-embed_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+embed_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")  # type: ignore[no-any-unimported]
 
 # ---------------------------------------------------------------------------
 # システムプロンプト
@@ -204,7 +204,7 @@ class ChatResponse(BaseModel):
 # ---------------------------------------------------------------------------
 def to_embedding(text: str) -> np.ndarray:
     """テキストを float32 ベクトルに変換する。"""
-    return embed_model.encode([text])[0].astype("float32")
+    return embed_model.encode([text])[0].astype("float32")  # type: ignore[no-any-return]
 
 
 def save_memory(user_id: str, content: str) -> None:
@@ -237,12 +237,13 @@ def search_similar_memories(user_id: str, query: str, top_k: int = 3) -> list[st
     )
 
     dim = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dim)
-    index.add(embeddings)
+    index = faiss.IndexFlatL2(dim)  # type: ignore[no-any-unimported]
+    index.add(embeddings)  # type: ignore[no-any-unimported]
 
     query_vec = to_embedding(query).reshape(1, -1)
-    _, indices = index.search(query_vec, min(top_k, len(contents)))
-    return [contents[i] for i in indices[0] if 0 <= i < len(contents)]
+    _, idx_array = index.search(query_vec, min(top_k, len(contents)))  # type: ignore[no-any-unimported]
+    result_indices: list[int] = [int(x) for x in idx_array[0]]  # type: ignore[no-any-unimported]
+    return [contents[i] for i in result_indices if 0 <= i < len(contents)]
 
 
 # ---------------------------------------------------------------------------
@@ -266,7 +267,7 @@ def save_inner_memory(user_id: str, thought: str, emotion: str, action: str) -> 
         )
 
 
-def get_conversation_history(user_id: str, limit: int = 10) -> list[dict]:
+def get_conversation_history(user_id: str, limit: int = 10) -> list[dict[str, str]]:
     """直近の会話履歴を時系列順で取得する。"""
     with get_db() as conn:
         rows = conn.execute(
@@ -310,12 +311,14 @@ def chat(req: ChatRequest):
     prompt += f"\n\nユーザー：{message}\nAmlhere："
 
     # Gemini 呼び出し
+    raw = ""
     try:
+        response_text = gemini_client.models.generate_content(
+            model=GEMINI_MODEL, contents=prompt
+        ).text
         raw = (
-            gemini_client.models.generate_content(
-                model=GEMINI_MODEL, contents=prompt
-            )
-            .text.strip()
+            (response_text or "")
+            .strip()
             .replace("```json", "")
             .replace("```", "")
             .strip()
@@ -327,8 +330,8 @@ def chat(req: ChatRequest):
         action = data.get("action", "")
         memory_extract = data.get("memory_extract", "")
     except json.JSONDecodeError:
-        logger.warning("JSON パース失敗 — raw=%s", raw[:200])
-        reply = raw
+        logger.warning("JSON パース失敗 — raw=%s", raw[:200] if raw else "(empty)")
+        reply = raw or "..."
         thought = emotion = action = memory_extract = ""
     except Exception:
         logger.exception("Gemini API 呼び出しに失敗しました")
@@ -407,7 +410,7 @@ def emotion_to_score(emotion: str) -> dict[str, int]:
     return DEFAULT_SCORES
 
 
-def get_emotion_logs(user_id: str, days: int = 7) -> list[dict]:
+def get_emotion_logs(user_id: str, days: int = 7) -> list[dict[str, Any]]:
     """過去 N 日分の感情ログを取得する。"""
     since = (datetime.now() - timedelta(days=days)).isoformat()
     with get_db() as conn:
@@ -429,7 +432,7 @@ def get_emotion_logs(user_id: str, days: int = 7) -> list[dict]:
     ]
 
 
-def aggregate_by_day(logs: list[dict]) -> list[dict]:
+def aggregate_by_day(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """日ごとにストレス・モチベの平均を計算する。"""
     daily: dict[str, dict[str, list[int]]] = {}
     for log in logs:
@@ -449,7 +452,7 @@ def aggregate_by_day(logs: list[dict]) -> list[dict]:
     ]
 
 
-def _generate_feedback(daily: list[dict], days: int) -> str:
+def _generate_feedback(daily: list[dict[str, Any]], days: int) -> str:
     """Gemini で感情データに基づくフィードバックを生成する。"""
     summary = json.dumps(daily, ensure_ascii=False)
     prompt = (
@@ -461,7 +464,7 @@ def _generate_feedback(daily: list[dict], days: int) -> str:
         response = gemini_client.models.generate_content(
             model=GEMINI_MODEL, contents=prompt
         )
-        return response.text.strip()
+        return (response.text or "").strip()
     except Exception:
         logger.exception("フィードバック生成に失敗しました")
         return "フィードバックを生成できませんでした。しばらくしてからお試しください。"
@@ -471,7 +474,7 @@ def _generate_feedback(daily: list[dict], days: int) -> str:
 def get_analytics(
     user_id: str,
     days: int = Query(default=7, ge=1, le=MAX_DAYS),
-):
+) -> dict[str, Any]:
     """日ごとの感情データを返す。"""
     user_id = _validate_user_id(user_id)
     logs = get_emotion_logs(user_id, days)
@@ -488,7 +491,7 @@ def get_analytics(
 def get_feedback(
     user_id: str,
     days: int = Query(default=7, ge=1, le=MAX_DAYS),
-):
+) -> dict[str, Any]:
     """AI が感情ログを分析してフィードバックを生成する。"""
     user_id = _validate_user_id(user_id)
     logs = get_emotion_logs(user_id, days)
