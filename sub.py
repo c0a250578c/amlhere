@@ -40,7 +40,7 @@ logger = logging.getLogger("amlhere")
 # 定数
 # ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = os.environ.get("AMLHERE_DB_PATH", str(BASE_DIR / "chappy.db"))
+DB_PATH = os.environ.get("AMLHERE_DB_PATH", "/tmp/chappy.db")
 GEMINI_MODEL = os.environ.get("AMLHERE_MODEL", "gemini-2.5-flash-preview-04-17")
 ALLOWED_ORIGINS = os.environ.get(
     "AMLHERE_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"

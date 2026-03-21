@@ -6,3 +6,5 @@ google-genai==1.12.*
 sentence-transformers==4.1.*
 faiss-cpu==1.11.*
 numpy==2.2.*
+torch==2.6.*
+--extra-index-url https://download.pytorch.org/whl/cpu
