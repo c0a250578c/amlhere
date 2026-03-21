@@ -168,3 +168,7 @@ def get_history(user_id: str, limit: int = 20):
     conn.close()
     return [{"role": r[0], "message": r[1], "created_at": r[2]} for r in rows]
 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+
