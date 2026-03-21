@@ -17,6 +17,7 @@
             --user-bg: rgba(196,168,130,0.08);
             --ai-bg: rgba(255,255,255,0.03);
             --glow: rgba(196,168,130,0.15);
+            --danger: #e07070;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -166,6 +167,8 @@
             display: inline-block;
             cursor: pointer;
             transition: all 0.2s;
+            background: none;
+            font-family: 'DM Sans', sans-serif;
         }
 
         .welcome-hint:hover {
@@ -229,6 +232,7 @@
             font-size: 0.9rem;
             line-height: 1.7;
             max-width: calc(100% - 50px);
+            word-break: break-word;
         }
 
         .message.ai .bubble {
@@ -401,9 +405,19 @@
             max-width: 720px;
             margin: 8px auto 0;
             font-size: 0.75rem;
-            color: #e07070;
+            color: var(--danger);
             text-align: center;
             min-height: 16px;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 600px) {
+            header { padding: 14px 16px; }
+            .chat-area { padding: 16px; }
+            .input-area { padding: 14px 16px; }
+            .welcome-title { font-size: 2.2rem; }
+            .logo { font-size: 1.3rem; }
+            .logo span { display: none; }
         }
     </style>
 </head>
@@ -415,196 +429,241 @@
         <span>アムリエ</span>
     </div>
     <div class="header-right">
-        <a href="http://localhost:8001/dashboard/user_001" class="dashboard-btn" target="_blank">ダッシュボード</a>
+        <a id="dashboardLink" href="#" class="dashboard-btn" target="_blank" rel="noopener noreferrer">ダッシュボード</a>
         <div class="status">
             <div class="status-dot"></div>
-            オンライン
+            <span>オンライン</span>
         </div>
     </div>
 </header>
 
-<div class="chat-area" id="chatArea">
+<div class="chat-area" id="chatArea" role="log" aria-label="チャット履歴">
     <div class="welcome" id="welcome">
         <div class="welcome-title">Amlhere</div>
         <p class="welcome-sub">
             心は灰色でも、私はいつでもここにいる。<br>
             思考・感情・行動を記録しながら、あなたと共に成長します。
         </p>
-        <div class="welcome-hint" onclick="sendWelcome()">最近の気分を教えてください →</div>
+        <button class="welcome-hint" id="welcomeHint" type="button">最近の気分を教えてください →</button>
     </div>
 </div>
 
 <div class="input-area">
     <div class="user-id-bar">
-        <label>USER ID</label>
-        <input type="text" id="userId" value="user_001" />
+        <label for="userId">USER ID</label>
+        <input type="text" id="userId" value="user_001" maxlength="64" pattern="[a-zA-Z0-9_-]+" autocomplete="off" />
     </div>
     <div class="input-wrapper">
         <textarea
             id="messageInput"
             placeholder="今の気持ちを話してください..."
             rows="1"
-            onkeydown="handleKey(event)"
-            oninput="autoResize(this)"
+            maxlength="2000"
+            aria-label="メッセージ入力"
         ></textarea>
-        <button class="send-btn" id="sendBtn" onclick="sendMessage()">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <button class="send-btn" id="sendBtn" type="button" aria-label="送信">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
             </svg>
         </button>
     </div>
-    <div class="error-msg" id="errorMsg"></div>
+    <div class="error-msg" id="errorMsg" role="alert" aria-live="assertive"></div>
 </div>
 
 <script>
-    const API_URL = 'http://localhost:8000';
-    let isLoading = false;
+    (() => {
+        'use strict';
 
-    // テキストエリアの自動リサイズ
-    function autoResize(el) {
-        el.style.height = 'auto';
-        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-    }
+        // ---- 設定 ----
+        const API_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000'
+            : '';
+        const ANALYTICS_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+            ? 'http://localhost:8001'
+            : '';
+        const USER_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 
-    // Enterキーで送信（Shift+Enterは改行）
-    function handleKey(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
+        // ---- DOM 参照 ----
+        const chatArea     = document.getElementById('chatArea');
+        const messageInput = document.getElementById('messageInput');
+        const userIdInput  = document.getElementById('userId');
+        const sendBtn      = document.getElementById('sendBtn');
+        const errorMsg     = document.getElementById('errorMsg');
+        const welcome      = document.getElementById('welcome');
+        const dashboardLink = document.getElementById('dashboardLink');
+        const welcomeHint  = document.getElementById('welcomeHint');
+
+        let isLoading = false;
+
+        // ---- ダッシュボードリンク更新 ----
+        function updateDashboardLink() {
+            const uid = userIdInput.value.trim();
+            if (uid && USER_ID_RE.test(uid)) {
+                dashboardLink.href = `${ANALYTICS_URL}/dashboard/${encodeURIComponent(uid)}`;
+            }
+        }
+        userIdInput.addEventListener('input', updateDashboardLink);
+        updateDashboardLink();
+
+        // ---- テキストエリアの自動リサイズ ----
+        function autoResize() {
+            messageInput.style.height = 'auto';
+            messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+        }
+        messageInput.addEventListener('input', autoResize);
+
+        // ---- キーボード操作 ----
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // ---- ボタンクリック ----
+        sendBtn.addEventListener('click', sendMessage);
+        welcomeHint.addEventListener('click', () => {
+            messageInput.value = '最近の気分を教えてください';
             sendMessage();
-        }
-    }
+        });
 
-    // ウェルカムヒントクリック
-    function sendWelcome() {
-        document.getElementById('messageInput').value = '最近の気分を教えてください';
-        sendMessage();
-    }
+        // ---- メッセージ送信 ----
+        async function sendMessage() {
+            if (isLoading) return;
 
-    // メッセージ送信
-    async function sendMessage() {
-        if (isLoading) return;
+            const userId  = userIdInput.value.trim();
+            const message = messageInput.value.trim();
 
-        const input = document.getElementById('messageInput');
-        const userId = document.getElementById('userId').value.trim();
-        const message = input.value.trim();
-        const errorMsg = document.getElementById('errorMsg');
-
-        // バリデーション
-        errorMsg.textContent = '';
-        if (!message) {
-            errorMsg.textContent = 'メッセージを入力してください';
-            return;
-        }
-        if (!userId) {
-            errorMsg.textContent = 'ユーザーIDを入力してください';
-            return;
-        }
-
-        // ウェルカム画面を隠す
-        const welcome = document.getElementById('welcome');
-        if (welcome) welcome.style.display = 'none';
-
-        // ユーザーメッセージを表示
-        addMessage('user', message);
-        input.value = '';
-        input.style.height = 'auto';
-
-        // タイピングインジケーター表示
-        const typingId = showTyping();
-        isLoading = true;
-        document.getElementById('sendBtn').disabled = true;
-
-        try {
-            const res = await fetch(`${API_URL}/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, message })
-            });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || 'エラーが発生しました');
+            // バリデーション
+            errorMsg.textContent = '';
+            if (!message) {
+                errorMsg.textContent = 'メッセージを入力してください';
+                return;
+            }
+            if (!userId || !USER_ID_RE.test(userId)) {
+                errorMsg.textContent = 'ユーザーIDは英数字・ハイフン・アンダースコアのみ（1〜64文字）';
+                return;
             }
 
-            const data = await res.json();
-            removeTyping(typingId);
-            addMessage('ai', data.reply, data.thought, data.emotion, data.action);
+            // ウェルカム画面を隠す
+            if (welcome) welcome.style.display = 'none';
 
-        } catch (e) {
-            removeTyping(typingId);
-            errorMsg.textContent = e.message.includes('Failed to fetch')
-                ? 'サーバーに接続できません。起動しているか確認してください。'
-                : e.message;
-        } finally {
-            isLoading = false;
-            document.getElementById('sendBtn').disabled = false;
-        }
-    }
+            // ユーザーメッセージを表示
+            addMessage('user', message);
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
 
-    // メッセージをDOMに追加
-    function addMessage(role, text, thought = '', emotion = '', action = '') {
-        const chatArea = document.getElementById('chatArea');
+            // タイピングインジケーター表示
+            const typingId = showTyping();
+            setLoading(true);
 
-        const msg = document.createElement('div');
-        msg.className = `message ${role}`;
+            try {
+                const res = await fetch(`${API_URL}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, message }),
+                });
 
-        const avatarText = role === 'ai' ? 'A' : '你';
-        msg.innerHTML = `
-            <div class="avatar ${role}">${avatarText}</div>
-            <div class="bubble">${escapeHtml(text)}</div>
-        `;
-        chatArea.appendChild(msg);
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.detail || `エラーが発生しました (${res.status})`);
+                }
 
-        // 内面状態タグ（AIのみ）
-        if (role === 'ai' && (thought || emotion || action)) {
-            const tags = document.createElement('div');
-            tags.className = 'inner-state';
-            if (thought) tags.innerHTML += `<span class="tag thought">💭 ${escapeHtml(thought)}</span>`;
-            if (emotion) tags.innerHTML += `<span class="tag emotion">✦ ${escapeHtml(emotion)}</span>`;
-            if (action)  tags.innerHTML += `<span class="tag action">→ ${escapeHtml(action)}</span>`;
-            chatArea.appendChild(tags);
+                const data = await res.json();
+                removeTyping(typingId);
+                addMessage('ai', data.reply, data.thought, data.emotion, data.action);
+            } catch (e) {
+                removeTyping(typingId);
+                errorMsg.textContent = e.message.includes('Failed to fetch')
+                    ? 'サーバーに接続できません。起動しているか確認してください。'
+                    : e.message;
+            } finally {
+                setLoading(false);
+            }
         }
 
-        scrollToBottom();
-    }
+        // ---- ローディング状態管理 ----
+        function setLoading(loading) {
+            isLoading = loading;
+            sendBtn.disabled = loading;
+            messageInput.disabled = loading;
+        }
 
-    // タイピングインジケーター
-    function showTyping() {
-        const chatArea = document.getElementById('chatArea');
-        const id = 'typing-' + Date.now();
-        const el = document.createElement('div');
-        el.className = 'typing';
-        el.id = id;
-        el.innerHTML = `
-            <div class="avatar ai">A</div>
-            <div class="typing-dots">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
-        `;
-        chatArea.appendChild(el);
-        scrollToBottom();
-        return id;
-    }
+        // ---- メッセージをDOMに追加 ----
+        function addMessage(role, text, thought, emotion, action) {
+            const msg = document.createElement('div');
+            msg.className = `message ${role}`;
 
-    function removeTyping(id) {
-        const el = document.getElementById(id);
-        if (el) el.remove();
-    }
+            const avatarText = role === 'ai' ? 'A' : 'U';
+            const avatar = document.createElement('div');
+            avatar.className = `avatar ${role}`;
+            avatar.textContent = avatarText;
 
-    function scrollToBottom() {
-        const chatArea = document.getElementById('chatArea');
-        chatArea.scrollTop = chatArea.scrollHeight;
-    }
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.textContent = text;
+            // 改行だけ <br> に置換（テキストは既にエスケープ済み）
+            bubble.innerHTML = bubble.innerHTML.replace(/\n/g, '<br>');
 
-    function escapeHtml(text) {
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/\n/g, '<br>');
-    }
+            msg.appendChild(avatar);
+            msg.appendChild(bubble);
+            chatArea.appendChild(msg);
+
+            // 内面状態タグ（AIのみ）
+            if (role === 'ai' && (thought || emotion || action)) {
+                const tags = document.createElement('div');
+                tags.className = 'inner-state';
+                if (thought) appendTag(tags, 'thought', '💭', thought);
+                if (emotion) appendTag(tags, 'emotion', '✦', emotion);
+                if (action)  appendTag(tags, 'action',  '→', action);
+                chatArea.appendChild(tags);
+            }
+
+            scrollToBottom();
+        }
+
+        function appendTag(parent, cls, icon, text) {
+            const span = document.createElement('span');
+            span.className = `tag ${cls}`;
+            span.textContent = `${icon} ${text}`;
+            parent.appendChild(span);
+        }
+
+        // ---- タイピングインジケーター ----
+        function showTyping() {
+            const id = 'typing-' + Date.now();
+            const el = document.createElement('div');
+            el.className = 'typing';
+            el.id = id;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar ai';
+            avatar.textContent = 'A';
+
+            const dots = document.createElement('div');
+            dots.className = 'typing-dots';
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dots.appendChild(dot);
+            }
+
+            el.appendChild(avatar);
+            el.appendChild(dots);
+            chatArea.appendChild(el);
+            scrollToBottom();
+            return id;
+        }
+
+        function removeTyping(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function scrollToBottom() {
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+    })();
 </script>
 </body>
 </html>
