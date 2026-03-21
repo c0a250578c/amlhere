@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: amlhere
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn sub:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false          # Render ダッシュボードで手動設定
+      - key: AMLHERE_CORS_ORIGINS
+        value: https://amlhere.onrender.com
+      - key: AMLHERE_DB_PATH
+        value: /opt/render/project/src/chappy.db
+      - key: PYTHON_VERSION
+        value: "3.12"
