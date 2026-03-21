@@ -475,12 +475,8 @@
         'use strict';
 
         // ---- 設定 ----
-        const API_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
-            ? 'http://localhost:8000'
-            : '';
-        const ANALYTICS_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
-            ? 'http://localhost:8001'
-            : '';
+        // 全て同一サーバーで配信されるため、空文字 = same-origin
+        const API_URL = '';
         const USER_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 
         // ---- DOM 参照 ----
@@ -499,7 +495,7 @@
         function updateDashboardLink() {
             const uid = userIdInput.value.trim();
             if (uid && USER_ID_RE.test(uid)) {
-                dashboardLink.href = `${ANALYTICS_URL}/dashboard/${encodeURIComponent(uid)}`;
+                dashboardLink.href = `${API_URL}/dashboard/${encodeURIComponent(uid)}`;
             }
         }
         userIdInput.addEventListener('input', updateDashboardLink);
