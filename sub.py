@@ -42,9 +42,6 @@ logger = logging.getLogger("amlhere")
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = os.environ.get("AMLHERE_DB_PATH", "/tmp/chappy.db")
 GEMINI_MODEL = os.environ.get("AMLHERE_MODEL", "gemini-2.5-flash-preview-04-17")
-ALLOWED_ORIGINS = os.environ.get(
-    "AMLHERE_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
-).split(",")
 USER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 MAX_MESSAGE_LENGTH = 2000
 MAX_DAYS = 365
@@ -57,7 +54,7 @@ app = FastAPI(title="Amlhere API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
