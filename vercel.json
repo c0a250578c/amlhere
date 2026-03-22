@@ -1,0 +1,24 @@
+{
+  "routes": [
+    {
+      "src": "/api/chat",
+      "dest": "/api/chat.py"
+    },
+    {
+      "src": "/api/memories/(?<user_id>[^/]+)",
+      "dest": "/api/memories.py?user_id=$user_id"
+    },
+    {
+      "src": "/api/history/(?<user_id>[^/]+)",
+      "dest": "/api/history.py?user_id=$user_id"
+    },
+    {
+      "src": "/api/health",
+      "dest": "/api/health.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ]
+}

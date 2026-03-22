@@ -1,0 +1,57 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "venv",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ],
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/chat",
+        "function": "chat"
+      },
+      {
+        "source": "/api/memories/{user_id}",
+        "function": "getMemories"
+      },
+      {
+        "source": "/api/history/{user_id}",
+        "function": "getHistory"
+      },
+      {
+        "source": "/api/analytics/{user_id}",
+        "function": "getAnalytics"
+      },
+      {
+        "source": "/api/feedback/{user_id}",
+        "function": "getFeedback"
+      },
+      {
+        "source": "/api/dashboard/{user_id}",
+        "function": "getDashboard"
+      },
+      {
+        "source": "/api/health",
+        "function": "healthCheck"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
