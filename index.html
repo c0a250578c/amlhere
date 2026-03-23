@@ -530,6 +530,7 @@
             <span>アムリエ</span>
         </div>
         <div class="header-right">
+            <button id="clearHistoryBtn" class="dashboard-btn" type="button">履歴を消す</button>
             <a id="dashboardLink" href="#" class="dashboard-btn" target="_blank" rel="noopener noreferrer">ダッシュボード</a>
             <div class="status">
                 <div class="status-dot"></div>
@@ -550,11 +551,6 @@
     </div>
 
     <div class="input-area">
-        <div class="user-id-bar">
-            <label for="userId">USER ID</label>
-            <input type="text" id="userId" value="" maxlength="64" pattern="[a-zA-Z0-9_-]+" autocomplete="off"
-                placeholder="固有IDを入力" />
-        </div>
         <div class="input-wrapper">
             <textarea id="messageInput" placeholder="今の気持ちを話してください..." rows="1" maxlength="2000"
                 aria-label="メッセージ入力"></textarea>
@@ -579,19 +575,20 @@
             // ---- DOM 参照 ----
             const chatArea = document.getElementById('chatArea');
             const messageInput = document.getElementById('messageInput');
-            const userIdInput = document.getElementById('userId');
             const sendBtn = document.getElementById('sendBtn');
             const errorMsg = document.getElementById('errorMsg');
             const welcome = document.getElementById('welcome');
             const dashboardLink = document.getElementById('dashboardLink');
             const welcomeHint = document.getElementById('welcomeHint');
+            const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
             let isLoading = false;
+            let currentUserId = '';
 
             // ---- 固有ユーザーID生成 ----
             function generateUserId() {
                 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-                let result = 'user_';
+                let result = 'amlhere_';
                 for (let i = 0; i < 8; i++) {
                     result += chars.charAt(Math.floor(Math.random() * chars.length));
                 }
@@ -599,22 +596,50 @@
             }
 
             // localStorageから取得、なければ生成
-            let storedUserId = localStorage.getItem('amlhere_user_id');
-            if (!storedUserId) {
-                storedUserId = generateUserId();
-                localStorage.setItem('amlhere_user_id', storedUserId);
+            function initUserId() {
+                let storedUserId = localStorage.getItem('amlhere_user_id');
+                if (!storedUserId) {
+                    storedUserId = generateUserId();
+                    localStorage.setItem('amlhere_user_id', storedUserId);
+                }
+                currentUserId = storedUserId;
+                updateDashboardLink();
             }
-            userIdInput.value = storedUserId;
+
+            // 履歴を消して新しいIDを生成
+            function clearHistory() {
+                localStorage.removeItem('amlhere_user_id');
+                initUserId();
+                // チャットエリアをクリア
+                chatArea.innerHTML = `
+                    <div class="welcome" id="welcome">
+                        <div class="welcome-title">Amlhere</div>
+                        <p class="welcome-sub">
+                            心は灰色でも、私はいつでもここにいる。<br>
+                            思考・感情・行動を記録しながら、あなたと共に成長します。
+                        </p>
+                        <button class="welcome-hint" id="welcomeHint" type="button">最近の気分を教えてください →</button>
+                    </div>
+                `;
+                // 新しいwelcomeHintにイベントリスナーを再設定
+                document.getElementById('welcomeHint').addEventListener('click', () => {
+                    messageInput.value = '最近の気分を教えてください';
+                    sendMessage();
+                });
+                errorMsg.textContent = '新しいセッションを開始しました';
+                setTimeout(() => { errorMsg.textContent = ''; }, 3000);
+            }
+
+            clearHistoryBtn.addEventListener('click', clearHistory);
 
             // ---- ダッシュボードリンク更新 ----
             function updateDashboardLink() {
-                const uid = userIdInput.value.trim();
-                if (uid && USER_ID_RE.test(uid)) {
-                    dashboardLink.href = `${API_URL}/dashboard/${encodeURIComponent(uid)}`;
+                if (currentUserId && USER_ID_RE.test(currentUserId)) {
+                    dashboardLink.href = `${API_URL}/dashboard/${encodeURIComponent(currentUserId)}`;
                 }
             }
-            userIdInput.addEventListener('input', updateDashboardLink);
-            updateDashboardLink();
+
+            initUserId();
 
             // ---- テキストエリアの自動リサイズ ----
             function autoResize() {
@@ -642,7 +667,7 @@
             async function sendMessage() {
                 if (isLoading) return;
 
-                const userId = userIdInput.value.trim();
+                const userId = currentUserId;
                 const message = messageInput.value.trim();
 
                 // バリデーション
