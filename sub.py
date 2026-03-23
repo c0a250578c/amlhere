@@ -41,7 +41,7 @@ logger = logging.getLogger("amlhere")
 # ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = os.environ.get("AMLHERE_DB_PATH", "/tmp/chappy.db")
-GEMINI_MODEL = os.environ.get("AMLHERE_MODEL", "gemini-2.5-flash-preview-04-17")
+GEMINI_MODEL = os.environ.get("AMLHERE_MODEL", "gemini-2.5-flash")
 USER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 MAX_MESSAGE_LENGTH = 2000
 MAX_DAYS = 365
