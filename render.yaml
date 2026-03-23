@@ -8,8 +8,6 @@ services:
     envVars:
       - key: GEMINI_API_KEY
         sync: false # Render ダッシュボードで手動設定
-      - key: AMLHERE_CORS_ORIGINS
-        value: https://amlhere.onrender.com
       - key: AMLHERE_DB_PATH
         value: /tmp/chappy.db
       - key: PYTHON_VERSION
