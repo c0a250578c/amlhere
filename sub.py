@@ -332,9 +332,10 @@ def chat(req: ChatRequest):
         logger.warning("JSON パース失敗 — raw=%s", raw[:200] if raw else "(empty)")
         reply = raw or "..."
         thought = emotion = action = memory_extract = ""
-    except Exception:
-        logger.exception("Gemini API 呼び出しに失敗しました")
-        raise HTTPException(status_code=502, detail="AI サービスとの通信に失敗しました")
+    except Exception as e:
+        error_msg = str(e)
+        logger.exception("Gemini API 呼び出しに失敗しました: %s", error_msg)
+        raise HTTPException(status_code=502, detail=f"AI サービスエラー: {error_msg[:100]}")
 
     # 永続化
     save_conversation(user_id, message, "user")
