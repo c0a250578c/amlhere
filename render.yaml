@@ -7,7 +7,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: GEMINI_API_KEY
-        sync: false # Render ダッシュボードで手動設定
+        sync: false
       - key: AMLHERE_DB_PATH
         value: /tmp/chappy.db
       - key: PYTHON_VERSION
