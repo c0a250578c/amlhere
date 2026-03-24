@@ -4,4 +4,4 @@ python-dotenv==1.1.*
 pydantic==2.11.*
 google-genai==1.12.*
 faiss-cpu==1.12.0
-numpy==2.2.*
+numpy==2.2.6
