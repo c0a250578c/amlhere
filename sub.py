@@ -239,9 +239,11 @@ class ChatResponse(BaseModel):
 # Embedding & 記憶検索
 # ---------------------------------------------------------------------------
 def to_embedding(text: str) -> np.ndarray:
-    """テキストをハッシュベースの簡易ベクトルに変換。"""
-    hash_val = hashlib.sha256(text.encode()).digest()
-    vec = np.frombuffer(hash_val, dtype=np.uint8).astype("float32")
+    result = gemini_client.models.embed_content(
+        model="models/text-embedding-004",
+        contents=text
+    )
+    vec = np.array(result.embeddings[0].values, dtype="float32")
     return vec / np.linalg.norm(vec)
 
 
