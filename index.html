@@ -519,6 +519,7 @@
                 display: none;
             }
         }
+
         .edit-btn {
             background: rgba(255, 255, 255, 0.1);
             border: none;
@@ -560,7 +561,8 @@
             margin-top: 8px;
         }
 
-        .edit-save-btn, .edit-cancel-btn {
+        .edit-save-btn,
+        .edit-cancel-btn {
             padding: 6px 12px;
             border-radius: 6px;
             border: none;
@@ -851,32 +853,32 @@
             // ---- メッセージ編集機能 ----
             function editMessage(msgDiv, originalText) {
                 const bubble = msgDiv.querySelector('.bubble');
-                
+
                 const textarea = document.createElement('textarea');
                 textarea.className = 'edit-textarea';
                 textarea.value = originalText;
                 textarea.rows = 3;
-                
+
                 const btnContainer = document.createElement('div');
                 btnContainer.className = 'edit-buttons';
-                
+
                 const saveBtn = document.createElement('button');
                 saveBtn.textContent = '保存';
                 saveBtn.className = 'edit-save-btn';
-                
+
                 const cancelBtn = document.createElement('button');
                 cancelBtn.textContent = 'キャンセル';
                 cancelBtn.className = 'edit-cancel-btn';
-                
+
                 btnContainer.appendChild(saveBtn);
                 btnContainer.appendChild(cancelBtn);
-                
+
                 const originalContent = bubble.innerHTML;
                 bubble.innerHTML = '';
                 bubble.appendChild(textarea);
                 bubble.appendChild(btnContainer);
                 textarea.focus();
-                
+
                 saveBtn.addEventListener('click', () => {
                     const newText = textarea.value.trim();
                     if (newText && newText !== originalText) {
@@ -889,7 +891,7 @@
                         bubble.innerHTML = originalContent;
                     }
                 });
-                
+
                 cancelBtn.addEventListener('click', () => {
                     bubble.innerHTML = originalContent;
                 });
