@@ -239,12 +239,19 @@ class ChatResponse(BaseModel):
 # Embedding & 記憶検索
 # ---------------------------------------------------------------------------
 def to_embedding(text: str) -> np.ndarray:
-    result = gemini_client.models.embed_content(
-        model="models/text-embedding-004",
-        contents=text
-    )
-    vec = np.array(result.embeddings[0].values, dtype="float32")
-    return vec / np.linalg.norm(vec)
+    try:
+        result = client.models.embed_content(
+            model="models/text-embedding-004",
+            contents=text
+        )
+        vec = np.array(result.embeddings[0].values, dtype="float32")
+        return vec / np.linalg.norm(vec)
+    except Exception:
+        # フォールバック：ハッシュベースのembedding
+        import hashlib
+        hash_val = hashlib.sha256(text.encode("utf-8")).digest()
+        vec = np.frombuffer(hash_val, dtype=np.uint8).astype("float32")
+        return vec / np.linalg.norm(vec)
 
 
 def save_memory(user_id: str, content: str) -> None:
