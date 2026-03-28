@@ -239,11 +239,11 @@ class ChatResponse(BaseModel):
 # Embedding & 記憶検索
 # ---------------------------------------------------------------------------
 def to_embedding(text: str) -> np.ndarray:
-    result = genai.embed_content(
+    result = client.models.embed_content(
         model="models/text-embedding-004",
-        content=text
+        contents=text
     )
-    vec = np.array(result['embedding'], dtype="float32")
+    vec = np.array(result.embeddings[0].values, dtype="float32")
     return vec / np.linalg.norm(vec)
 
 
