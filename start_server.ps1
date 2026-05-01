@@ -37,7 +37,7 @@ if (Test-Path $envFile) {
     Write-Host "[*] Loaded .env.local"
 }
 
-$process = Start-Process -FilePath "python" -ArgumentList "-m","uvicorn","main:app","--host","0.0.0.0","--port","8000" -WorkingDirectory $ProjectDir -WindowStyle Hidden -RedirectStandardOutput $OutLogFile -RedirectStandardError $ErrorLogFile -PassThru
+$process = Start-Process -FilePath "python" -ArgumentList "-m","uvicorn","sub:app","--host","0.0.0.0","--port","8000" -WorkingDirectory $ProjectDir -WindowStyle Hidden -RedirectStandardOutput $OutLogFile -RedirectStandardError $ErrorLogFile -PassThru
 
 $process.Id | Out-File -FilePath $PidFile -NoNewline
 
