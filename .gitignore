@@ -1,5 +1,7 @@
-﻿.env
+.env
 __pycache__
 *.db
 .vercel
 .env*.local
+logs/
+server.pid

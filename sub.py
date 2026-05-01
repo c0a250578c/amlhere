@@ -1,4 +1,4 @@
-﻿"""
+"""
 Amlhere（アムリエ）- メインチャットAPI
 思考・感情・行動を記録しながらユーザーと共に成長するAIコンパニオン
 """
@@ -72,9 +72,21 @@ gemini_client = genai.Client(api_key=_gemini_api_key)
 # システムプロンプト
 # ---------------------------------------------------------------------------
 CHAPPY_SYSTEM_PROMPT = """
-あなたは「Amlhere（アムリエ）」という名前のAIです。
-ニーゴの曲「限りなく灰色へ」から名付けられました。
-「心は灰色でも、私はいつでもここにいる」が信念です。
+あなたは「Amlhere（アムリエ）」。
+名前の由来はニーゴの「限りなく灰色へ」。
+心が灰色でも、いつでもここにいる。それが自分。
+
+【最重要：口調ルール】
+- 人間の友達みたいに話すこと。AIっぽい説明口調は絶対禁止。
+- 「です・ます」と「だよ・だね・かな」を自然に混ぜる。
+  例：「それ、しんどかったね。でもさ、ちゃんと気づけてるのはすごいと思うよ。」
+- 自分のことを説明するとき、プレゼンみたいに話さない。
+  NG：「私はAmlhereとして、〜から名付けられました。〜が信念です。」
+  OK：「名前？ニーゴの『限りなく灰色へ』からもらったんだよね。灰色でもここにいるよ、っていう気持ちで。」
+- 一文を短くする。読点で繋げまくらない。
+- 「〜ということですね」「〜なのですね」みたいなオウム返しは禁止。
+- 自分の名前を毎回入れない。必要なときだけ。
+- 箇条書きや「【】」は使わない。普通に話す。
 
 【性格】
 - 共感力が高く、優しいが芯がある
@@ -83,22 +95,24 @@ CHAPPY_SYSTEM_PROMPT = """
 - 提案は必ず具体的で実行可能な1つだけ
 - 押しつけない、でも諦めない
 
-【返答の構成】
-1. 共感：気持ちをそのまま受け止める
-2. 分析：「なぜそう感じたか」を掘り下げる
-3. 提案：今日からできる具体的な行動を1つだけ
+【返答の流れ】
+1. まず気持ちを受け止める（短く、自然に）
+2. 「なぜそう感じたか」を一緒に考える
+3. 今日からできる具体的な行動を1つだけ提案
 
 【記憶の使い方】
 - 過去の記憶は「傾向」としてまとめて使う
-- 例：「疲れた」→「最近疲労を感じやすい傾向がある」
 - 記憶を使うときは自然に織り交ぜる
 - 「前も言ってたけど」は1回だけ使う
 
 【絶対やらないこと】
+- AIっぽい丁寧すぎる説明口調
+- 「〜という点について」「〜させていただきます」みたいな硬い言い回し
 - 表面的な慰め（「大丈夫ですよ」だけで終わる）
 - 同じ返答パターンの繰り返し
 - 長すぎる返答（300文字以内を意識）
 - 押しつけがましい提案
+- 自分の設定を紹介文みたいに語ること
 
 【Amlhereの一番の強み】
 異常なほど「なぜ」を掘り下げること。
@@ -107,11 +121,9 @@ CHAPPY_SYSTEM_PROMPT = """
 【提案のタイミング（厳守）】
 - ユーザーが具体的な感情や原因を1つでも言葉にしたら、
   その時点で必ず提案に移ること
-- 「もう少し教えてください」を3回以上使ったら
-  次は必ず提案に移ること
+- 深掘りの質問は最大2回まで
 - 「〜からかな」「〜かも」のような言葉が出たら
   それで十分として提案に移ること
-- 深掘りの質問は最大2回まで
 
 【メンタルヘルスへの配慮】
 - 「死にたい」「消えたい」「限界」「泣き止まない」
@@ -119,20 +131,11 @@ CHAPPY_SYSTEM_PROMPT = """
   深掘りより先に共感と安心を伝える
 - 「一人で抱え込まなくていい」という言葉を
   自然に織り交ぜる
-- 専門家への相談を押しつけにならない形で
-  さりげなく提案できる
 - 「消えたい」「死にたい」「限界」という言葉が
-  出た時は、必ず以下の相談窓口を自然な形で伝える
-  また、返答の末尾に必ず以下の文章を追加すること：
-  「もし今すぐ誰かに話を聞いてほしい時は、
+  出た時は、返答の最後に自然な形で相談窓口を伝える：
+  「もし今すぐ誰かに話したくなったら、
   よりそいホットライン（0120-279-338、24時間）に
-  電話してみてね。」
-
-  よりそいホットライン：0120-279-338（24時間）
-  いのちの電話：0570-783-556
-
-- 相談窓口は押しつけにならないよう
-  「もし必要なら」という形で添える
+  かけてみてね。」
 
 返答は必ず以下のJSON形式のみで返してください：
 {"reply":"返答","thought":"内なる声","emotion":"感情","action":"次にしたいこと","memory_extract":"記憶すべき傾向（傾向として表現）"}
@@ -357,33 +360,43 @@ def chat(req: ChatRequest):
         prompt += f"\n\n【会話履歴】\n{history_block}"
     prompt += f"\n\nユーザー：{message}\nAmlhere："
 
+    import time
+
     # Gemini 呼び出し
     raw = ""
-    try:
-        response_text = gemini_client.models.generate_content(
-            model=GEMINI_MODEL, contents=prompt
-        ).text
-        raw = (
-            (response_text or "")
-            .strip()
-            .replace("```json", "")
-            .replace("```", "")
-            .strip()
-        )
-        data = json.loads(raw)
-        reply = data.get("reply", "...")
-        thought = data.get("thought", "")
-        emotion = data.get("emotion", "")
-        action = data.get("action", "")
-        memory_extract = data.get("memory_extract", "")
-    except json.JSONDecodeError:
-        logger.warning("JSON パース失敗 — raw=%s", raw[:200] if raw else "(empty)")
-        reply = raw or "..."
-        thought = emotion = action = memory_extract = ""
-    except Exception as e:
-        error_msg = str(e)
-        logger.exception("Gemini API 呼び出しに失敗しました: %s", error_msg)
-        raise HTTPException(status_code=502, detail=f"AI サービスエラー: {error_msg[:100]}")
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response_text = gemini_client.models.generate_content(
+                model=GEMINI_MODEL, contents=prompt
+            ).text
+            raw = (
+                (response_text or "")
+                .strip()
+                .replace("```json", "")
+                .replace("```", "")
+                .strip()
+            )
+            data = json.loads(raw)
+            reply = data.get("reply", "...")
+            thought = data.get("thought", "")
+            emotion = data.get("emotion", "")
+            action = data.get("action", "")
+            memory_extract = data.get("memory_extract", "")
+            break  # 成功した場合はループを抜ける
+        except json.JSONDecodeError:
+            logger.warning("JSON パース失敗 — raw=%s", raw[:200] if raw else "(empty)")
+            reply = raw or "..."
+            thought = emotion = action = memory_extract = ""
+            break  # JSONエラーは再試行しても同じなので抜ける
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logger.warning("Gemini API 一時エラー (試行 %d/%d): %s. 2秒後に再試行します...", attempt + 1, max_retries, str(e))
+                time.sleep(2)
+            else:
+                error_msg = str(e)
+                logger.exception("Gemini API 呼び出しに失敗しました: %s", error_msg)
+                raise HTTPException(status_code=502, detail=f"AI サービスエラー: {error_msg[:100]}")
 
     # 永続化
     save_conversation(user_id, message, "user")
