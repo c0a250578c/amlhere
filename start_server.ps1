@@ -23,18 +23,25 @@ if (Test-Path $PidFile) {
     }
 }
 
-$envFile = Join-Path $ProjectDir ".env.local"
-if (Test-Path $envFile) {
-    Get-Content $envFile | ForEach-Object {
-        $line = $_.Trim()
-        if ($line -and (-not $line.StartsWith("#")) -and $line.Contains("=")) {
-            $idx = $line.IndexOf("=")
-            $key = $line.Substring(0, $idx).Trim()
-            $val = $line.Substring($idx + 1).Trim()
-            [System.Environment]::SetEnvironmentVariable($key, $val, "Process")
+$envFiles = @(".env", ".env.local")
+foreach ($file in $envFiles) {
+    $envPath = Join-Path $ProjectDir $file
+    if (Test-Path $envPath) {
+        Get-Content $envPath | ForEach-Object {
+            $line = $_.Trim()
+            if ($line -and (-not $line.StartsWith("#")) -and $line.Contains("=")) {
+                $idx = $line.IndexOf("=")
+                $key = $line.Substring(0, $idx).Trim()
+                $val = $line.Substring($idx + 1).Trim()
+                # Remove quotes if present
+                if ($val.StartsWith('"') -and $val.EndsWith('"')) {
+                    $val = $val.Substring(1, $val.Length - 2)
+                }
+                [System.Environment]::SetEnvironmentVariable($key, $val, "Process")
+            }
         }
+        Write-Host "[*] Loaded $file"
     }
-    Write-Host "[*] Loaded .env.local"
 }
 
 $process = Start-Process -FilePath "python" -ArgumentList "-m","uvicorn","sub:app","--host","0.0.0.0","--port","8000" -WorkingDirectory $ProjectDir -WindowStyle Hidden -RedirectStandardOutput $OutLogFile -RedirectStandardError $ErrorLogFile -PassThru
