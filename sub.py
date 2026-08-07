@@ -243,7 +243,7 @@ class ChatResponse(BaseModel):
 # ---------------------------------------------------------------------------
 def to_embedding(text: str) -> np.ndarray:
     try:
-        result = client.models.embed_content(
+        result = gemini_client.models.embed_content(
             model="models/text-embedding-004",
             contents=text
         )
