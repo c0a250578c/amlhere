@@ -6,6 +6,14 @@
 - `sub.py` — バックエンド全部（FastAPI / Gemini API / FAISS / SQLite）
 - `index.html` — フロント（単一ファイル）
 - デプロイ: Render（バックエンド）+ GitHub Pages（フロント）
+  本番URL: https://amlhere-nxo5.onrender.com （詳細は「デプロイ環境」を参照）
+
+## デプロイ環境
+- Render: 個人アカウント（kouogu13-star）側に再デプロイ済み。
+  本番URL: https://amlhere-nxo5.onrender.com
+- 旧デプロイ（大学アカウント側の Render）はバックアップとして一時的に残している。
+  動作確認が完全に終わったら削除予定。
+- GitHubリポジトリも `kouogu13-star/amlhere` に移管済み（旧: `c0a250578c/amlhere`）
 
 ## 作者について
 - プログラミング初心者。学習目的で開発している。
