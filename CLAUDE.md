@@ -32,7 +32,7 @@
 
 | 日付 | 対象 | 問題 | 対応 |
 |---|---|---|---|
-| 2026-08-07 | `sub.py` | `to_embedding` が未定義の `client` を参照していてGemini埋め込みが動かない | `gemini_client` に修正（cf00b21） |
+| 2026-08-21 | `sub.py`（`to_embedding` 関数） | 変数名の誤り（`client` → `gemini_client`）により、Gemini embeddingが常に失敗し、ハッシュベースのフォールバックで動いていた | 変数名を修正（コミット cf00b21） |
 
 ## 既知の課題
 1. レート制限が未実装（他人が使うとAPI費用が発生する）
