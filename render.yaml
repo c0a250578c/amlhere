@@ -10,5 +10,7 @@ services:
         sync: false
       - key: AMLHERE_DB_PATH
         value: /tmp/chappy.db
+      - key: AMLHERE_MODEL
+        value: gemini-2.5-flash-lite
       - key: PYTHON_VERSION
         value: "3.12"
