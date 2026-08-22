@@ -10,8 +10,8 @@
 
 ## デプロイ環境
 - Render: 個人アカウント（kouogu13-star）側に再デプロイ済み。
-  **本番URL: https://amlhere.onrender.com**（`/health` が `{"status":"ok"}` を返すことを確認済み）
-- **`amlhere-nxo5.onrender.com` は誤って作った空のサービス。使わないこと。**
+  本番URL: https://amlhere.onrender.com（`/health` が `{"status":"ok"}` を返すことを確認済み）
+- `amlhere-nxo5.onrender.com` は誤って作った空のサービス。使わないこと。
   ビルドが一度も成功しておらず、`/health` は無応答（`code=000`）。Render側で削除予定。
 - 旧デプロイ（大学アカウント側の Render）はバックアップとして一時的に残している。
   動作確認が完全に終わったら削除予定。
@@ -54,7 +54,7 @@
 3. `to_embedding` の例外処理が `except Exception:` で全種類のエラーを握りつぶしている。
    今回のembeddingバグもこれが原因で発覚が遅れた。本来はエラー内容をログに出す
    （例: `logger.warning`）べき。根本原因は直ったが、この設計自体は残っている。
-4. **Render の `GEMINI_API_KEY` が無効。`/chat` が 502 で失敗する（未解決）。**
+4. Render の `GEMINI_API_KEY` が無効。`/chat` が 502 で失敗する（未解決）。
    2026-08-22 に curl で実測。エラー内容:
    `AI サービスエラー: 400 INVALID_ARGUMENT ... 'API key not valid'`
    `render.yaml` で `sync: false` のため、ダッシュボードでの手入力が必要な値。
