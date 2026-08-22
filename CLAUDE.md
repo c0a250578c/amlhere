@@ -6,14 +6,18 @@
 - `sub.py` — バックエンド全部（FastAPI / Gemini API / FAISS / SQLite）
 - `index.html` — フロント（単一ファイル）
 - デプロイ: Render（バックエンド）+ GitHub Pages（フロント）
-  本番URL: https://amlhere-nxo5.onrender.com （詳細は「デプロイ環境」を参照）
+  本番URL: https://amlhere.onrender.com （詳細は「デプロイ環境」を参照）
 
 ## デプロイ環境
 - Render: 個人アカウント（kouogu13-star）側に再デプロイ済み。
-  本番URL: https://amlhere-nxo5.onrender.com
+  **本番URL: https://amlhere.onrender.com**（`/health` が `{"status":"ok"}` を返すことを確認済み）
+- **`amlhere-nxo5.onrender.com` は誤って作った空のサービス。使わないこと。**
+  ビルドが一度も成功しておらず、`/health` は無応答（`code=000`）。Render側で削除予定。
 - 旧デプロイ（大学アカウント側の Render）はバックアップとして一時的に残している。
   動作確認が完全に終わったら削除予定。
 - GitHubリポジトリも `kouogu13-star/amlhere` に移管済み（旧: `c0a250578c/amlhere`）
+- コミット作者はこのリポジトリだけ `kouogu13-star / kouogu13@gmail.com` に設定済み
+  （`git config --local`。global は大学アカウントのまま）
 
 ## 作者について
 - プログラミング初心者。学習目的で開発している。
@@ -41,6 +45,8 @@
 | 日付 | 対象 | 問題 | 対応 |
 |---|---|---|---|
 | 2026-08-21 | `sub.py`（`to_embedding` 関数） | 変数名の誤り（`client` → `gemini_client`）により、Gemini embeddingが常に失敗し、ハッシュベースのフォールバックで動いていた | 変数名を修正（コミット cf00b21） |
+| 2026-08-22 | `CLAUDE.md` | コミット `c6632c8`「w」で、チャット用のプロンプト文がファイル冒頭に貼り付き `# Amlhere` の見出しが壊れ、「デプロイ環境」セクションが丸ごと消えていた | push済みのため履歴は書き換えず、`git checkout a5c6c63 -- CLAUDE.md` で内容を戻す前進コミットで対応（コミット 0d782d3） |
+| 2026-08-22 | `index.html`（647行目 `API_URL`） | 誤って作った空のサービス `amlhere-nxo5.onrender.com` を指しており、`/health` が無応答（`code=000`）だった。ビルドも4回中4回失敗していた | 実際に稼働している `https://amlhere.onrender.com` に変更（コミット 5d8495f）。`/health` が200を0.33秒で返すことを実測で確認 |
 
 ## 既知の課題
 1. レート制限が未実装（他人が使うとAPI費用が発生する）
@@ -48,6 +54,14 @@
 3. `to_embedding` の例外処理が `except Exception:` で全種類のエラーを握りつぶしている。
    今回のembeddingバグもこれが原因で発覚が遅れた。本来はエラー内容をログに出す
    （例: `logger.warning`）べき。根本原因は直ったが、この設計自体は残っている。
+4. **Render の `GEMINI_API_KEY` が無効。`/chat` が 502 で失敗する（未解決）。**
+   2026-08-22 に curl で実測。エラー内容:
+   `AI サービスエラー: 400 INVALID_ARGUMENT ... 'API key not valid'`
+   `render.yaml` で `sync: false` のため、ダッシュボードでの手入力が必要な値。
+   個人アカウント移行時に、古いキーが残っているか貼り付けミスの可能性。
+   → Google AI Studio で個人アカウントの新しいキーを発行し、Render の
+     `amlhere` サービスの Environment に設定する。
+   ※ Google Cloud の請求先アカウントは紐付けないこと（無料枠超過時に課金される）。
 
 ## 解決済み
 - `to_embedding` の変数名バグ（`client` → `gemini_client`）→ cf00b21 で修正済み
